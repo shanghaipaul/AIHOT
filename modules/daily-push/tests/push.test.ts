@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
-import { pushDaily, renderDaily } from "../backend/push.ts";
+import { addDays, beijingDate } from "@aihot/contracts/time";
+import { pushDaily, pushLatestDaily, renderDaily } from "../backend/push.ts";
 
 const DATE = "2026-10-28";
 
@@ -38,6 +39,26 @@ test("a daily is pushed as Markdown, and only once", async () => {
     assert.equal(again.status, "skipped");
   } finally {
     await sql`DELETE FROM reports WHERE kind = ${"daily"} AND key = ${DATE}`;
+    if (before === undefined) delete process.env.AIHOT_DATA_DIR;
+    else process.env.AIHOT_DATA_DIR = before;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a daily that is not out yet is not pushed", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "daily-push-"));
+  const before = process.env.AIHOT_DATA_DIR;
+  process.env.AIHOT_DATA_DIR = dir;
+  const ahead = addDays(beijingDate(new Date()), 2);
+  try {
+    await sql`INSERT INTO reports (kind, key, window_start, window_end, content, generated_at)
+      VALUES (${"daily"}, ${ahead}, now(), now(), ${sql.json({ sections: [], flashes: [] })}, now())`;
+
+    const result = await pushLatestDaily();
+    assert.equal(result.status, "skipped");
+    assert.match(result.reason ?? "", /还没到出刊时间/);
+  } finally {
+    await sql`DELETE FROM reports WHERE kind = ${"daily"} AND key = ${ahead}`;
     if (before === undefined) delete process.env.AIHOT_DATA_DIR;
     else process.env.AIHOT_DATA_DIR = before;
     await rm(dir, { recursive: true, force: true });

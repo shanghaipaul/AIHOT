@@ -4,6 +4,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { dailyWithNotes } from "@aihot/backend/publication/reports";
+import { beijingDate } from "@aihot/contracts/time";
 import { SITE } from "@aihot/site";
 
 export type PushStatus = "pushed" | "skipped" | "empty" | "failed";
@@ -85,9 +86,16 @@ export async function pushDaily(date: string): Promise<PushResult> {
   }
 }
 
-/** Pushes the newest daily there is. */
+/**
+ * Pushes the newest daily there is. An issue whose date is still ahead is not pushed: it is written
+ * before its edition time, and a push would announce it early.
+ */
 export async function pushLatestDaily(): Promise<PushResult> {
   const issue = await dailyWithNotes("latest");
   if (!issue) return { status: "empty", date: null, file: null, items: 0, reason: "还没有日报" };
-  return pushDaily(issue.body.report.date);
+  const date = issue.body.report.date;
+  if (date > beijingDate(new Date())) {
+    return { status: "skipped", date, file: null, items: 0, reason: "这一期还没到出刊时间" };
+  }
+  return pushDaily(date);
 }
