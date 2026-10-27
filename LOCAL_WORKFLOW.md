@@ -17,8 +17,13 @@
 
 ```
 upstream  https://github.com/KKKKhazix/AIHOT.git     # 官方仓库（只读）
-origin    https://github.com/<你的用户名>/AIHOT.git   # 你的 fork（推送目标）
+origin    https://github.com/shanghaipaul/AIHOT.git  # 你的 fork（推送目标，2026-10-27 已建好）
 ```
+
+你的 fork 网页地址：<https://github.com/shanghaipaul/AIHOT>
+
+分支跟踪是拆开的：`custom/main` 的 **pull 走 upstream**（`git pull` = 拉上游并变基），
+**push 走 origin**（`remote.pushDefault=origin`），所以 `git push` 不会误推到官方仓库。
 
 已经写进本仓库 `.git/config` 的行为（只影响这个仓库）：
 
@@ -241,14 +246,17 @@ node scripts/check-migrations.ts --base main   # 新迁移自查
 
 ## 13. 本机工具箱（已装好，直接用）
 
-都在 `/Volumes/ORICO/github/` 下，不进版本库，只有你这台机器有：
+都在 `/Volumes/ORICO/github/aihot-tools/` 下，不进版本库，只有你这台机器有（详细说明见该目录的 `README.md`）：
 
 | 工具 | 作用 | 用法 |
 | --- | --- | --- |
 | `aihot-sync.sh` | 一键把上游更新并进 `custom/main` | `./aihot-sync.sh` ／ `./aihot-sync.sh check`（只看不动手） |
 | `aihot-new-feature.py` | 一键生成一个新功能模块的完整骨架 | `python3 aihot-new-feature.py <模块名> [页面标题]` |
+| `analyze-upstream.py` | 统计上游更新频率（提交/周、PR、贡献者、提交空档） | `python3 analyze-upstream.py [--days 30] [--json out.json]` |
 | `.git/hooks/pre-commit` | 护栏：拦密钥/`.data/`，提醒锁文件与引擎核心改动 | 提交时自动跑 |
 | `.git/hooks/commit-msg` | 护栏：提交信息必须是 Conventional Commits | 提交时自动跑，`WIP: xxx` 可跳过 |
+
+上一次上游更新频率的快照：`/Volumes/ORICO/github/aihot-tools/upstream-frequency-2026-10-27.md`（含原始 JSON）。
 
 护栏行为（已实测）：
 
