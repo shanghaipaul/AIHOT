@@ -365,6 +365,566 @@
       ],
       "site_fulltext": false,
       "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-apple-ml-research",
+      "name": "Apple Machine Learning Research",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://machinelearning.apple.com/rss.xml",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": "apple",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-ollama-blog",
+      "name": "Ollama Blog",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://ollama.com/blog/rss.xml",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": "ollama",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-elevenlabs-blog",
+      "name": "ElevenLabs Blog",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://elevenlabs.io/blog/rss.xml",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": "elevenlabs",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-nvidia-newsroom",
+      "name": "NVIDIA Newsroom",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://nvidianews.nvidia.com/releases.xml",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": "nvidia",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-google-ai-blog",
+      "name": "Google AI Blog",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://blog.google/technology/ai/rss/",
+        "_aihot": {
+          "initialBackfillLimit": 5
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": "google",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-databricks-blog",
+      "name": "Databricks Blog",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.databricks.com/feed",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-together-blog",
+      "name": "Together AI Blog",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.together.ai/blog/rss.xml",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-sakana-news",
+      "name": "Sakana AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://sakana.ai/feed.xml",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-writer-blog",
+      "name": "Writer Blog",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://writer.com/blog/feed/",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-openrouter-announce",
+      "name": "OpenRouter 公告",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://openrouter.ai/announcements/feed.xml",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T1",
+      "owner_entity_id": "openrouter",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "官方"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-mit-news-ai",
+      "name": "MIT News · AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://news.mit.edu/rss/topic/artificial-intelligence2",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "机构媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-lilian-weng",
+      "name": "Lilian Weng",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://lilianweng.github.io/index.xml",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T1_5",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 240,
+      "tags": [
+        "研究者"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-the-register-ai",
+      "name": "The Register · AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.theregister.com/software/ai_ml/headlines.atom",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 90,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-zdnet-ai",
+      "name": "ZDNET · AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 90,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-ieee-spectrum-ai",
+      "name": "IEEE Spectrum · AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 90,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-marktechpost",
+      "name": "MarkTechPost",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.marktechpost.com/feed/",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 90,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-kdnuggets",
+      "name": "KDnuggets",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.kdnuggets.com/feed",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-towards-ai",
+      "name": "Towards AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.towardsai.net/feed",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-synced",
+      "name": "Synced",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://syncedreview.com/feed/",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-wired-ai",
+      "name": "WIRED · AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.wired.com/feed/tag/ai/latest/rss",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-qbitai",
+      "name": "量子位",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.qbitai.com/feed",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 90,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-leiphone",
+      "name": "雷锋网",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.leiphone.com/feed",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 90,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-infoq-ai",
+      "name": "InfoQ · AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.infoq.cn/feed/ai",
+        "_aihot": {
+          "initialBackfillLimit": 4
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 90,
+      "tags": [
+        "媒体"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-one-useful-thing",
+      "name": "One Useful Thing (Ethan Mollick)",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.oneusefulthing.org/feed",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 240,
+      "tags": [
+        "个人"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-ai-snake-oil",
+      "name": "Ahead of AI (AI Snake Oil)",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.aisnakeoil.com/feed",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 240,
+      "tags": [
+        "个人"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-interconnects",
+      "name": "Interconnects (Nathan Lambert)",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://www.interconnects.ai/feed",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 240,
+      "tags": [
+        "个人"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-sebastian-raschka",
+      "name": "Sebastian Raschka",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://magazine.sebastianraschka.com/feed",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 240,
+      "tags": [
+        "个人"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
+    },
+    {
+      "id": "rss-hn-ai",
+      "name": "Hacker News · AI",
+      "kind": "rss",
+      "config": {
+        "feedUrl": "https://hnrss.org/newest?q=AI",
+        "_aihot": {
+          "initialBackfillLimit": 3
+        }
+      },
+      "tier": "T2",
+      "owner_entity_id": null,
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": [
+        "社区"
+      ],
+      "site_fulltext": false,
+      "syndicate_fulltext": false
     }
   ]
 }
