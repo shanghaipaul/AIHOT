@@ -43,10 +43,24 @@ export const PRESETS: Record<string, ModelPreset> = {
     service: "dashscope", model: "qwen3-vl-flash", baseUrlEnv: "DASHSCOPE_BASE_URL", apiKeyEnv: "DASHSCOPE_API_KEY",
     extra: { enable_thinking: false }, jsonMode: false, vision: true,
   },
+  // MiniMax M3.1 Flash on the same gateway as the default model. It thinks before it answers, so
+  // "reasoning_effort: low" keeps the structured steps as fast as before; the room for reasoning is
+  // the same the default model has.
+  "minimax-m31-flash": {
+    service: "llm", model: "minimax/MiniMax-M3.1-Flash", baseUrlEnv: "LLM_BASE_URL", apiKeyEnv: "LLM_API_KEY",
+    extra: { reasoning_effort: "low" }, reasoningTokens: 4000, jsonMode: true,
+  },
 };
 
 /**
  * 每一步默认用的模型（步骤见后台“模型与评测”页），值是上面的名字或 default。没写的步骤用 default。
  * 例：{ score: "glm-5.3-flash-selection", groupReview: "mimo-v2.6-flash" }
+ *
+ * 这个站统一用网关上的 MiniMax M3.1 Flash：后台“模型与评测”页把每一步都切到 minimax-m31-flash，
+ * 部署的默认模型（.env 的 LLM_MODEL）也是它，所以新加的步骤同样是它。带上 reasoning_effort: low
+ * 之后各步的速度和 M2.7-highspeed 持平（同一批真实稿子上：预筛 1.1–1.4s、评分两次 3.5–6s、
+ * 内容理解 3.1–5.9s，推理 token 更少），评分给的分相差在同一个模型自身的波动范围内。
+ *
+ * 这里不填 DEFAULTS：框架的测试会按 DEFAULTS 把每一步指向本地的假模型，填了就把它们绕过去了。
  */
 export const DEFAULTS: Record<string, string> = {};
