@@ -1,0 +1,13 @@
+{
+  "name": "@aihot/daily-push",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./*.ts"
+  },
+  "dependencies": {
+    "@aihot/backend": "*",
+    "@aihot/contracts": "*",
+    "@aihot/site": "*"
+  }
+}
