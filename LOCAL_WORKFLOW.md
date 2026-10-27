@@ -239,7 +239,41 @@ node scripts/check-migrations.ts --base main   # 新迁移自查
 
 测试方面没有独立的 fixtures 目录：标注样本是 `industry/*.example.jsonl`，本地私有的样本放 `.data/gold.jsonl`（不进 Git）。
 
-## 13. 速查
+## 13. 本机工具箱（已装好，直接用）
+
+都在 `/Volumes/ORICO/github/` 下，不进版本库，只有你这台机器有：
+
+| 工具 | 作用 | 用法 |
+| --- | --- | --- |
+| `aihot-sync.sh` | 一键把上游更新并进 `custom/main` | `./aihot-sync.sh` ／ `./aihot-sync.sh check`（只看不动手） |
+| `aihot-new-feature.py` | 一键生成一个新功能模块的完整骨架 | `python3 aihot-new-feature.py <模块名> [页面标题]` |
+| `.git/hooks/pre-commit` | 护栏：拦密钥/`.data/`，提醒锁文件与引擎核心改动 | 提交时自动跑 |
+| `.git/hooks/commit-msg` | 护栏：提交信息必须是 Conventional Commits | 提交时自动跑，`WIP: xxx` 可跳过 |
+
+护栏行为（已实测）：
+
+- 提交 `.env` / 密钥 / `.data/` → **直接拦下**
+- 提交信息不是 `feat(scope): xxx` 这类格式 → **直接拦下**（`Merge` / `Revert` / `WIP:` 放行）
+- 动了 `package-lock.json` → 提醒（不拦）
+- 动了 `packages/backend/src`、`apps/web/app`、`apps/api/src`、`packages/contracts/src` → 提醒这是上游冲突高发区（不拦）
+
+注意：本仓库的 `core.hooksPath` 被设成了 `.git/hooks`（覆盖了全局的临时钩子目录），否则上面两个护栏不会被 git 调用。
+
+`aihot-sync.sh` 的执行顺序：
+
+```
+git fetch upstream --prune
+-> 打印落后的提交与涉及的文件
+-> git checkout custom/main && git rebase upstream/main
+-> 有冲突就停下并列出冲突文件（解决后 git add + git rebase --continue）
+-> node scripts/check-migrations.ts --base main   (上游自带的迁移安全检查)
+-> npm run typecheck                              (类型检查)
+-> 提示 git push --force-with-lease origin custom/main
+```
+
+注意 rebase 冲突的一个细节：`rerere` 会把上次同类的解法**自动填好并 stage**，但 rebase 仍然会停一次，需要你 `git rebase --continue` 走完 —— 这不是出错。
+
+## 14. 速查
 
 ```bash
 git checkout main && git pull --ff-only upstream main   # 同步镜像
