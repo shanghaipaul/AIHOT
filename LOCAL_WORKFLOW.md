@@ -291,3 +291,31 @@ git log --oneline upstream/main..custom/main           # 我比上游多了哪�
 git rebase upstream/main                               # 把上游更新并进来（当前分支上执行）
 git push --force-with-lease origin custom/main         # 变基后安全强推
 ```
+
+## 15. 版本与发布（tag）
+
+打 tag 的规矩：**在 `custom/main` 上打**，名字 `v<主>.<次>.<改>`。这个版本号是本站自己的，
+和上游无关 —— 上游到现在还没有任何 tag，所以名字由我们定。
+
+```bash
+# 1) 确认工作区干净、当前在 custom/main
+git checkout custom/main && git status --porcelain
+
+# 2) 打带说明的 tag（说明写这一版改了什么，相对上一版）
+git tag -a v0.2.0 -m "AI日报 v0.2.0 ……" custom/main
+
+# 3) 推到自己的 fork
+git -c http.version=HTTP/1.1 -c http.postBuffer=524288000 push origin v0.2.0
+
+# 4) 写说明时看这一版相对上游多了什么
+git log --oneline upstream/main..custom/main
+```
+
+已有的版本：
+
+| tag | 提交 | 内容 |
+| --- | --- | --- |
+| `v0.1.0` | 3ecbb26 | 第一个版本：站名改成「AI日报」、daily-push 模块（出刊才推）、模型统一切到 MiniMax M3.1 Flash、信源 18 → 46 |
+
+GitHub 上的 Release 页面要 `gh auth login`（本机还没登录）。没登录时 tag 已经在仓库里了，
+Release 页面可以之后在网页上补；站内的更新日志条目写在 `site/changelog.json`。
