@@ -37,7 +37,7 @@ export default defineConfig({
   plugins: [devEdge(), tailwindcss(), reactRouter()],
   // The modules' pages import the engine's web code by this name (tsconfig.json paths).
   resolve: { alias: { "@aihot/web/": `${path.resolve(import.meta.dirname, "app")}/` } },
-  server: { port: 3000, strictPort: true },
+  server: { port: 30001, strictPort: true },
   build: {
     rolldownOptions: {
       output: {
