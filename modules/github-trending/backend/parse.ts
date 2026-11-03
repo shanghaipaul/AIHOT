@@ -35,6 +35,7 @@ export function parseTrending(html: string): TrendingRepo[] {
       name,
       url: `https://github.com/${repo}`,
       description: description || null,
+      descriptionZh: null,
       language: language || null,
       stars: count(row.find('a[href$="/stargazers"]').first().text()),
       forks: count(row.find('a[href$="/forks"]').first().text()),

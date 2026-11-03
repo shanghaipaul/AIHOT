@@ -6,11 +6,15 @@ import { defineServerModule } from "@aihot/backend/modules";
 import { loadTrending } from "./backend/api.ts";
 import { collectAllTrending, collectTrending } from "./backend/collect.ts";
 import { readPeriod } from "./backend/types.ts";
+import { translatePending } from "./backend/translate.ts";
 
 export { collectTrending };
 
 /** Off when the deployment turns it off; on otherwise: the list is public information. */
 const enabled = () => process.env.GITHUB_TRENDING_ENABLED !== "false";
+
+/** The Chinese descriptions need the model, so they wait until the model calls are switched on. */
+const translating = () => enabled() && process.env.MODEL_CALLS_ENABLED !== "false";
 
 /** When each period was last asked for, so a reader's button cannot make GitHub answer again and again. */
 const lastRefresh = new Map<string, number>();
@@ -45,5 +49,10 @@ function routes(app: FastifyInstance) {
 export const GITHUB_TRENDING_SERVER = defineServerModule({
   name: "github-trending",
   http: routes,
-  schedules: [{ name: "github-trending.collect", cron: "23 */2 * * *", when: enabled, run: () => collectAllTrending() }],
+  schedules: [
+    { name: "github-trending.collect", cron: "23 */2 * * *", when: enabled, run: () => collectAllTrending() },
+    // The descriptions are translated after the list was read, so a repository that was just added is
+    // read first and translated afterwards.
+    { name: "github-trending.translate", cron: "41 */2 * * *", when: translating, run: () => translatePending() },
+  ],
 });

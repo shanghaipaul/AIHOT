@@ -9,6 +9,7 @@ interface Row {
   name: string;
   url: string;
   description: string | null;
+  description_zh: string | null;
   language: string | null;
   stars: number | null;
   forks: number | null;
@@ -22,8 +23,11 @@ export async function loadTrending(period: unknown): Promise<TrendingSnapshot> {
   let rows: Row[] = [];
   try {
     rows = await sql<Row[]>`
-      SELECT position, repo, owner, name, url, description, language, stars, forks, stars_period, fetched_at
-      FROM github_trending WHERE period = ${key} ORDER BY position`;
+      SELECT t.position, t.repo, t.owner, t.name, t.url, t.description, t.language, t.stars, t.forks, t.stars_period, t.fetched_at,
+             z.zh AS description_zh
+      FROM github_trending t
+      LEFT JOIN github_trending_zh z ON z.repo = t.repo AND z.description = t.description
+      WHERE t.period = ${key} ORDER BY t.position`;
   } catch {
     // The table arrives with the migration; before that the page shows an empty list, not an error.
     rows = [];
@@ -38,6 +42,7 @@ export async function loadTrending(period: unknown): Promise<TrendingSnapshot> {
       name: row.name,
       url: row.url,
       description: row.description,
+      descriptionZh: row.description_zh,
       language: row.language,
       stars: row.stars,
       forks: row.forks,

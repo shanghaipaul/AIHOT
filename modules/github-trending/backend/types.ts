@@ -17,11 +17,18 @@ export interface TrendingRepo {
   name: string;
   url: string;
   description: string | null;
+  /** The description in Chinese, when the model has written it. */
+  descriptionZh: string | null;
   language: string | null;
   stars: number | null;
   forks: number | null;
   /** The stars the repository gained in the period, as GitHub counts them. */
   starsPeriod: number | null;
+}
+
+/** The description to show: the Chinese one when there is one, the original otherwise. */
+export function describeOf(repo: Pick<TrendingRepo, "description" | "descriptionZh">): string | null {
+  return repo.descriptionZh ?? repo.description ?? null;
 }
 
 export interface TrendingSnapshot {

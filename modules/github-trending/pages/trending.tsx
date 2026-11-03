@@ -8,7 +8,7 @@ import { apiGet, cachedPage, pageHeaders } from "@aihot/web/lib/api.server";
 import { relativeTime } from "@aihot/web/lib/format";
 import { pageReuse } from "@aihot/web/lib/page-reuse";
 import { pageMeta } from "@aihot/web/lib/seo";
-import type { TrendingSnapshot } from "../backend/types.ts";
+import { describeOf, type TrendingSnapshot } from "../backend/types.ts";
 
 export { pageHeaders as headers };
 export const { clientLoader, shouldRevalidate } = pageReuse<typeof loader>();
@@ -42,7 +42,7 @@ export function meta() {
   });
 }
 
-const num = (value: number | null): string => (value === null ? "—" : value.toLocaleString("en-US"));
+const num = (value: number | null): string => (value === null ? "—" : value.toLocaleString("zh-CN"));
 
 /** One repository: its place, its name (which opens it on GitHub), its numbers and its one line. */
 function Repo({ repo, gain }: { repo: TrendingSnapshot["repos"][number]; gain: string }) {
@@ -60,14 +60,18 @@ function Repo({ repo, gain }: { repo: TrendingSnapshot["repos"][number]; gain: s
             {repo.repo}
           </a>
           {repo.language && <Badge tone="neutral">{repo.language}</Badge>}
-          <span className="num text-[12px] text-ink-4">{num(repo.stars)} stars</span>
+          <span className="num text-[12px] text-ink-4">{num(repo.stars)} 星标</span>
           {repo.starsPeriod !== null && (
             <span className="num text-[12px] font-medium text-accent">
               {gain} +{num(repo.starsPeriod)}
             </span>
           )}
         </div>
-        {repo.description && <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ink-3">{repo.description}</p>}
+        {describeOf(repo) && (
+          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ink-3" title={repo.description ?? undefined}>
+            {describeOf(repo)}
+          </p>
+        )}
       </div>
     </li>
   );
@@ -82,7 +86,7 @@ export default function TrendingPage() {
     <header className="pb-2 pt-3 lg:pt-1">
       <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">GitHub 趋势</h1>
       <p className="mt-1.5 text-[13px] leading-relaxed text-ink-3">
-        GitHub 自己排的开源仓库热榜：今日、本周、本月三个周期，看谁在被点亮。
+        GitHub 自己排的开源仓库热榜：今日、本周、本月三个周期，看谁在被点亮。仓库简介由模型译成中文，鼠标悬停可看英文原文。
       </p>
     </header>
   );

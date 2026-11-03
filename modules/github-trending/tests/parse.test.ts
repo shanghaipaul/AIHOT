@@ -26,6 +26,7 @@ test("reads the repository, its numbers and its place in the list", () => {
     name: "name",
     url: "https://github.com/owner/name",
     description: "a description",
+    descriptionZh: null,
     language: "TypeScript",
     stars: 12345,
     forks: 678,
