@@ -1,0 +1,15 @@
+{
+  "name": "@aihot/github-trending",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./*.ts",
+    "./web": "./web.tsx"
+  },
+  "dependencies": {
+    "@aihot/backend": "*",
+    "@aihot/contracts": "*",
+    "@aihot/site": "*",
+    "cheerio": "1.2.0"
+  }
+}

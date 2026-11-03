@@ -3,5 +3,6 @@
 // pages' parts. Each list keeps the order its entries appear in on the site.
 import type { ModuleDeclaration } from "@aihot/contracts/modules";
 import { DAILY_PUSH } from "@aihot/daily-push/module";
+import { GITHUB_TRENDING } from "@aihot/github-trending/module";
 
-export const MODULES: readonly ModuleDeclaration[] = [DAILY_PUSH];
+export const MODULES: readonly ModuleDeclaration[] = [DAILY_PUSH, GITHUB_TRENDING];
