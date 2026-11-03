@@ -24,7 +24,7 @@ const SYSTEM = [
 ].join("\n");
 
 /** How many repositories one call carries; the answer is one line per repository. */
-const BATCH = 15;
+const BATCH = 20;
 
 interface Pending {
   repo: string;
@@ -79,4 +79,18 @@ export async function translatePending(limit = BATCH): Promise<number> {
     }
   });
   return items.length;
+}
+
+/**
+ * Translates over several rounds, so one run catches up with a long list: the merged list holds a
+ * hundred repositories per period, which is several batches.
+ */
+export async function translateTrending(rounds = 6): Promise<number> {
+  let total = 0;
+  for (let round = 0; round < rounds; round += 1) {
+    const written = await translatePending();
+    total += written;
+    if (written === 0) break;
+  }
+  return total;
 }

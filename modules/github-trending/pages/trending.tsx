@@ -1,6 +1,7 @@
 // The trending list: the repositories GitHub shows for a period, in its own order. It reads the api's
 // /api/github-trending and draws an empty state when the list has not been read yet, so a reader never
 // meets a 500 where a page should be.
+import { useState } from "react";
 import { Link, useLoaderData, useSearchParams } from "react-router";
 import { Badge } from "@aihot/web/components/ui/Badge";
 import { EmptyState } from "@aihot/web/components/ui/Page";
@@ -44,6 +45,9 @@ export function meta() {
 
 const num = (value: number | null): string => (value === null ? "—" : value.toLocaleString("zh-CN"));
 
+/** How many repositories the list shows at first; the rest waits for a click. */
+const PAGE_SIZE = 20;
+
 /** One repository: its place, its name (which opens it on GitHub), its numbers and its one line. */
 function Repo({ repo, gain }: { repo: TrendingSnapshot["repos"][number]; gain: string }) {
   return (
@@ -80,13 +84,14 @@ function Repo({ repo, gain }: { repo: TrendingSnapshot["repos"][number]; gain: s
 export default function TrendingPage() {
   const { snapshot, unavailable } = useLoaderData<typeof loader>();
   const [search] = useSearchParams();
+  const [shown, setShown] = useState(PAGE_SIZE);
   const period = snapshot?.period ?? (search.get("period") === "weekly" || search.get("period") === "monthly" ? search.get("period")! : "daily");
   const gain = PERIODS.find((option) => option.key === period)?.gain ?? "今日";
   const title = (
     <header className="pb-2 pt-3 lg:pt-1">
       <h1 data-page-title="" className="text-[24px] font-semibold leading-[1.3] text-ink">GitHub 趋势</h1>
       <p className="mt-1.5 text-[13px] leading-relaxed text-ink-3">
-        GitHub 自己排的开源仓库热榜：今日、本周、本月三个周期，看谁在被点亮。仓库简介由模型译成中文，鼠标悬停可看英文原文。
+        GitHub 自己排的开源仓库热榜：今日、本周、本月三个周期，按语言合并后取增长最快的 100 个仓库。仓库简介由模型译成中文，鼠标悬停可看英文原文。
       </p>
     </header>
   );
@@ -106,6 +111,7 @@ export default function TrendingPage() {
             </Link>
           );
         })}
+        {snapshot && <span className="num text-[12px] text-ink-4">共 {snapshot.repos.length} 个仓库</span>}
         {snapshot?.fetchedAt && (
           <span className="ml-1 text-[12px] text-ink-4">更新于 {relativeTime(snapshot.fetchedAt)}</span>
         )}
@@ -119,11 +125,24 @@ export default function TrendingPage() {
           榜单每两小时从 GitHub 读一次，读到之后这里就是最新的那份。
         </EmptyState>
       ) : (
-        <ul className="mt-2 divide-y divide-line-soft">
-          {snapshot.repos.map((repo) => (
-            <Repo key={repo.repo} repo={repo} gain={gain} />
-          ))}
-        </ul>
+        <>
+          <ul className="mt-2 divide-y divide-line-soft">
+            {snapshot.repos.slice(0, shown).map((repo) => (
+              <Repo key={repo.repo} repo={repo} gain={gain} />
+            ))}
+          </ul>
+        {shown < snapshot.repos.length && (
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShown(shown + PAGE_SIZE)}
+              className="rounded-full border border-line px-4 py-1.5 text-[12.5px] text-ink-3 transition-colors hover:text-ink"
+            >
+              显示更多（还有 {snapshot.repos.length - shown} 个仓库）
+            </button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

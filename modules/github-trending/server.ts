@@ -6,7 +6,7 @@ import { defineServerModule } from "@aihot/backend/modules";
 import { loadTrending } from "./backend/api.ts";
 import { collectAllTrending, collectTrending } from "./backend/collect.ts";
 import { readPeriod } from "./backend/types.ts";
-import { translatePending } from "./backend/translate.ts";
+import { translateTrending } from "./backend/translate.ts";
 
 export { collectTrending };
 
@@ -53,6 +53,6 @@ export const GITHUB_TRENDING_SERVER = defineServerModule({
     { name: "github-trending.collect", cron: "23 */2 * * *", when: enabled, run: () => collectAllTrending() },
     // The descriptions are translated after the list was read, so a repository that was just added is
     // read first and translated afterwards.
-    { name: "github-trending.translate", cron: "41 */2 * * *", when: translating, run: () => translatePending() },
+    { name: "github-trending.translate", cron: "41 */2 * * *", when: translating, run: () => translateTrending() },
   ],
 });
