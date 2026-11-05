@@ -4,5 +4,6 @@
 import type { ModuleDeclaration } from "@aihot/contracts/modules";
 import { DAILY_PUSH } from "@aihot/daily-push/module";
 import { GITHUB_TRENDING } from "@aihot/github-trending/module";
+import { FREEBIES } from "@aihot/freebies/module";
 
-export const MODULES: readonly ModuleDeclaration[] = [DAILY_PUSH, GITHUB_TRENDING];
+export const MODULES: readonly ModuleDeclaration[] = [DAILY_PUSH, GITHUB_TRENDING, FREEBIES];
