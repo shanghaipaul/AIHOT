@@ -1,7 +1,6 @@
 // IndexNow acknowledges at most 10,000 changed URLs per request. The saved identities describe only
 // accepted notifications, so a failed request, a dry run or a batch boundary cannot lose changes.
 import { config } from "../config.ts";
-import { runtimeOverrideBool } from "../runtime-config.ts";
 import { sql } from "../db.ts";
 import { sha256, stableJson } from "../lib/ids.ts";
 import { siteUrl } from "../publication/links.ts";
@@ -27,7 +26,7 @@ export async function submitIndexNow(now = new Date()) {
   let status: "sent" | "disabled" | "empty" | "failed" = urls.length ? "disabled" : "empty";
   let httpStatus: number | null = null;
   const key = config.indexNowKey;
-  if (urls.length && (runtimeOverrideBool("push.indexnow.enabled") ?? config.indexNowSubmitEnabled) && key) {
+  if (urls.length && config.indexNowSubmitEnabled && key) {
     const res = await fetch("https://api.indexnow.org/indexnow", {
       method: "POST",
       headers: { "content-type": "application/json; charset=utf-8" },

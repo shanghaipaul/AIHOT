@@ -8,7 +8,6 @@ import { audit } from "../audit.ts";
 import { requestRepublish } from "../jobs/publication.ts";
 import { getTweet, privateAccountRefusal } from "../providers/socialdata.ts";
 import { collectSource } from "./collect.ts";
-import { runtimeOverrideBool } from "../runtime-config.ts";
 import { X_HANDLE, xHandle } from "./account.ts";
 
 const DAY_MS = 86400_000;
@@ -23,8 +22,6 @@ export interface XRename {
 
 /** `pauseMs` between lookups leaves room in the provider's per-minute budget for the searches. */
 export async function followXRenames(opts: { now?: number; pauseMs?: number } = {}): Promise<{ checked: number; renamed: XRename[]; privateAccounts: string[] }> {
-  // Following a renamed X account costs one paid lookup, so it waits for the collect switch.
-  if (runtimeOverrideBool("collect.enabled") === false) return { checked: 0, renamed: [], privateAccounts: [] };
   const now = opts.now ?? Date.now();
   const window = new Date(now).toISOString().slice(0, 10);
   const quiet = await sql<{ id: string; name: string; query: string; tweet_ids: string[] }[]>`

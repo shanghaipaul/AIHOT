@@ -18,13 +18,12 @@ import { upstreamFindings } from "../media/upstream.ts";
 import { serverModules } from "../modules.ts";
 import { awaitingRelease, providerAccessRefused } from "../providers/receipts.ts";
 import { SOURCE_PROBLEMS, sourceHealth } from "../sources/health.ts";
-import { runtimeOverrideBool } from "../runtime-config.ts";
 
 const REPEAT_MS: Record<Exclude<Level, "later">, number> = { now: 3600_000, today: 24 * 3600_000 };
 
 // Valves default off: read at call time, only an explicit "true" turns them on.
-const collecting = () => runtimeOverrideBool("collect.enabled") ?? (process.env.COLLECT_ENABLED === "true");
-const modelsOn = () => runtimeOverrideBool("model.calls.enabled") ?? (process.env.MODEL_CALLS_ENABLED === "true");
+const collecting = () => process.env.COLLECT_ENABLED === "true";
+const modelsOn = () => process.env.MODEL_CALLS_ENABLED === "true";
 /**
  * How long the site may go without a new article before it counts as stalled (ALERT_QUIET_MINUTES, else
  * the site's own setting; small source lists are quieter). At most a day: the check looks one day back.

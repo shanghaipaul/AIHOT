@@ -1,7 +1,6 @@
 import { assertProductionSecrets, config } from "@aihot/backend/config";
 import { closeDb } from "@aihot/backend/db";
 import { installModules } from "@aihot/backend/modules";
-import { reloadRuntimeConfig, startRuntimeConfigRefresh } from "@aihot/backend/runtime-config";
 import { SERVER_MODULES } from "@aihot/site/modules/server";
 import { DEPLOYMENT } from "@aihot/site";
 import { feishuLoginConfigured } from "@aihot/backend/admin/auth";
@@ -9,8 +8,6 @@ import { startHeartbeat } from "@aihot/backend/operations/heartbeat";
 import { startWorkerWatchdog } from "@aihot/backend/operations/watch";
 import { buildApp } from "./app.ts";
 
-await reloadRuntimeConfig();
-startRuntimeConfigRefresh();
 installModules(SERVER_MODULES);
 assertProductionSecrets([
   ["auth", "SESSION_SECRET"],

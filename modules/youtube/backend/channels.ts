@@ -46,8 +46,9 @@ export const YOUTUBE_CHANNELS: readonly ChannelSeed[] = [
 ];
 
 /**
- * Writes the channels that are not in the table yet, and turns the ones that are on or off as the list
- * above says. The times the module keeps (when the channel was last read) are not touched.
+ * Writes the channels that are not in the table yet, and leaves the ones that are already there alone.
+ * The database is the only truth about which channels are on: an editor turning a channel off in the
+ * admin page must not find it switched on again by the next collection round.
  * Returns how many channels were written.
  */
 export async function ensureChannels(): Promise<number> {
@@ -56,7 +57,7 @@ export async function ensureChannels(): Promise<number> {
     const result = await sql`
       INSERT INTO youtube_channels (channel_id, handle, title, category, enabled)
       VALUES (${seed.channelId}, ${seed.handle}, ${seed.title}, ${seed.category}, ${seed.enabled ?? true})
-      ON CONFLICT (channel_id) DO UPDATE SET handle = EXCLUDED.handle, title = EXCLUDED.title, category = EXCLUDED.category, enabled = EXCLUDED.enabled, updated_at = now()`;
+      ON CONFLICT (channel_id) DO NOTHING`;
     written += result.count ?? 0;
   }
   return written;

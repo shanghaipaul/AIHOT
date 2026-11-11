@@ -15,7 +15,6 @@ import { requeueFailedArticles, runsOverview } from "@aihot/backend/admin/runs";
 import { resolveDelivery } from "@aihot/backend/notify/deliver";
 import { releaseReceipt } from "@aihot/backend/operations/recover";
 import { replaceContactQr, setTargetEnabled, settingsOverview, updateBudget } from "@aihot/backend/admin/settings";
-import { configOverview, resetConfigValue, setConfigValue } from "@aihot/backend/runtime-config";
 import { createSource, fetchNow, listSources, previewSource, previewStoredSource, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
 import { sendProblem } from "../http/respond.ts";
 import { adminHandler } from "./admin-auth.ts";
@@ -98,17 +97,6 @@ export function registerAdmin(app: FastifyInstance) {
 
   // Settings
   app.get("/api/admin/settings", adminHandler(async () => settingsOverview()));
-
-  // Runtime configuration: the switches an operator changes without editing .env.
-  app.get("/api/admin/config", adminHandler(async () => configOverview()));
-  app.post("/api/admin/config/:key", adminHandler(async (req, _reply, admin) => {
-    const b = body<{ value?: unknown; reason?: string }>(req);
-    return setConfigValue(param(req, "key"), b.value, String(b.reason ?? ""), actorOf(admin));
-  }));
-  app.delete("/api/admin/config/:key", adminHandler(async (req, _reply, admin) => {
-    const b = body<{ reason?: string }>(req);
-    return resetConfigValue(param(req, "key"), String(b.reason ?? q(req).reason ?? ""), actorOf(admin));
-  }));
   app.post("/api/admin/settings/contact-qr", adminHandler(async (req, _reply, admin) => {
     const b = body<{ slot: "wechatQr" | "feishuQr"; image: string }>(req);
     return replaceContactQr({ slot: b.slot, data: decodeImage(b.image) }, actorOf(admin));
