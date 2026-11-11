@@ -219,9 +219,11 @@ export async function setConfigValue(key: string, raw: unknown, reason: string, 
   if (!reason?.trim()) throw new ConfigError("reason is required");
   const before = configEntryState(entry);
   const text = validateConfigValue(entry, raw);
+  // The text goes in as it is: the driver writes a string as a jsonb string, and quoting it here
+  // as well would store the quotes inside the value.
   await sql.unsafe(
     "INSERT INTO settings (key, value, updated_by) VALUES ($1, $2::jsonb, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_by = EXCLUDED.updated_by, updated_at = now()",
-    ["config." + key, JSON.stringify(text), actor],
+    ["config." + key, text, actor],
   );
   overrides.set(key, text);
   await audit(actor, "config.set", "config:" + key, reason, entry.secret ? null : before.value, entry.secret ? null : text);

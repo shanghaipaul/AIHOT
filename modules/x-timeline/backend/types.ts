@@ -1,8 +1,8 @@
 // What the module's api answers with: the state of the timeline (what is configured, what the
 // collector has found) and one post. The frontend reads these; the backend fills them.
 
-/** How the module collects: the paid api the engine already has, or a login cookie (not wired yet). */
-export type XTimelineMode = "socialdata" | "cookie";
+/** How the module collects: the embedded timeline (free, through a proxy), the paid api, or a cookie. */
+export type XTimelineMode = "syndication" | "socialdata" | "cookie";
 
 /** A row of the sources table, as far as this module reads it. */
 export interface XSourceRow {
@@ -35,6 +35,16 @@ export interface XTimelineSource {
   lastOkAt: string | null;
   lastError: string | null;
   updatedAt: string | null;
+}
+
+/** How the last collection went: what was found, what was new, what went wrong. */
+export interface XTimelineCollection {
+  status: number;
+  found: number;
+  created: number;
+  skipped: number;
+  error: string | null;
+  at: string | null;
 }
 
 /** A picture or a video of a post. */
@@ -86,6 +96,10 @@ export interface XTimelineState {
   mode: XTimelineMode;
   /** Whether the paid api key is there: a yes or a no, never the key itself. */
   hasKey: boolean;
+  /** Whether a proxy is written down: a yes or a no, never the address itself. */
+  hasProxy: boolean;
   source: XTimelineSource | null;
   posts: XTimelinePost[];
+  /** How the last collection went, when there was one. */
+  lastCollection: XTimelineCollection | null;
 }

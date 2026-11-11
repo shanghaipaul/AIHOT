@@ -57,6 +57,20 @@ export interface XSource {
   lastFetchAt?: string | null;
   lastOkAt?: string | null;
   lastError?: string | null;
+  updatedAt?: string | null;
+}
+
+/** The way the collector reads X: a paid api, a login cookie, or the embedded timeline. */
+export type XMode = "socialdata" | "cookie" | "syndication";
+
+/** What the last collection run did. */
+export interface XLastCollection {
+  status?: number | null;
+  found?: number | null;
+  created?: number | null;
+  skipped?: number | null;
+  error?: string | null;
+  at?: string | null;
 }
 
 /** The whole answer of GET /api/x-timeline. */
@@ -65,8 +79,31 @@ export interface XTimelineFeed {
   handle?: string | null;
   mode?: string | null;
   hasKey?: boolean;
+  hasProxy?: boolean;
   source?: XSource | null;
   posts?: XPost[] | null;
+  lastCollection?: XLastCollection | null;
+}
+
+/** The mode of a feed, when it is one of the three the api knows. */
+export function asMode(value: string | null | undefined): XMode | null {
+  return value === "socialdata" || value === "cookie" || value === "syndication" ? value : null;
+}
+
+/** What the mode is called in Chinese. */
+export function modeLabel(mode: XMode | null): string {
+  if (mode === "socialdata") return "SocialData API";
+  if (mode === "cookie") return "登录 Cookie";
+  if (mode === "syndication") return "嵌入时间线";
+  return "模式未知";
+}
+
+/** One line about what the mode needs. */
+export function modeHint(mode: XMode | null): string {
+  if (mode === "socialdata") return "付费接口，需要 SOCIALDATA_API_KEY";
+  if (mode === "cookie") return "采集器还没接入";
+  if (mode === "syndication") return "免 API key，走代理读公开时间线";
+  return "先在后台选一种采集方式";
 }
 
 export async function loader({ request }: { request: Request }) {
@@ -118,6 +155,40 @@ function heatOf(post: XPost): string | null {
   if (typeof heat.retweet === "number") parts.push("转 " + heat.retweet);
   if (typeof heat.views === "number") parts.push("看 " + heat.views);
   return parts.length ? parts.join(" · ") : null;
+}
+
+/** Why there is nothing to show: the collection mode says more than a generic line. */
+function emptyState(feed: XTimelineFeed): { title: string; body: string } {
+  const mode = asMode(feed.mode);
+  const configured = feed.configured !== false || Boolean(feed.handle);
+  if (!configured) {
+    return {
+      title: "还没有配置 X 账号",
+      body: "在后台的「X 时间线」页面里指定要看的账号，采集任务会按周期把动态带回来。",
+    };
+  }
+  if (mode === "syndication") {
+    return {
+      title: "这个账号没有公开推文",
+      body: "syndication 只能读到公开时间线：私密内容、已删除的推文和一部分回复不会出现在这里。",
+    };
+  }
+  if (mode === "socialdata" && !feed.hasKey) {
+    return {
+      title: "需要先配置 SocialData API key",
+      body: "到后台的「X 时间线」页面填上 key，或者改用 syndication 方式采集（免 key，走代理）。",
+    };
+  }
+  if (mode === "cookie") {
+    return {
+      title: "cookie 采集器尚未接入",
+      body: "请改用 syndication（嵌入时间线，推荐）或 socialdata 采集方式。",
+    };
+  }
+  return {
+    title: "还没有采集到帖子",
+    body: "到后台的「X 时间线」页面点一次刷新，采集任务也会按周期继续跑。",
+  };
 }
 
 /** One post: who said it, when, the words, the pictures and the original. */
@@ -227,6 +298,10 @@ export default function XTimelinePage() {
   const posts = useMemo(() => feed?.posts ?? [], [feed]);
   const handle = feed?.handle ?? null;
   const source = feed?.source ?? null;
+  const mode = asMode(feed?.mode);
+  const lastCollection = feed?.lastCollection ?? null;
+  const collectError = lastCollection?.error?.trim() ? lastCollection.error.trim() : null;
+  const empty = feed ? emptyState(feed) : null;
 
   const kept = useMemo(() => {
     if (filter === "media") return posts.filter(hasPicture);
@@ -246,16 +321,25 @@ export default function XTimelinePage() {
           关注的公开动态在这里：抓回来的帖子带图片、摘要和原帖链接。
         </p>
         {feed && (
-          <p className="mt-1.5 text-[12.5px] text-ink-4">
-            {handle ? "@" + handle + " · " : ""}
-            {feed.mode === "cookie" ? "cookie 模式" : feed.mode ? feed.mode + " 模式" : "模式未知"}
-            {source?.name ? " · " + source.name : ""}
-            {source && !source.enabled ? " · 已暂停" : ""}
+          <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-ink-4">
+            {handle ? "@" + handle : ""}
+            <Badge tone={mode === "syndication" ? "accent" : "neutral"}>{modeLabel(mode)}</Badge>
+            {source?.name ? source.name : ""}
+            {source && !source.enabled ? "已暂停" : ""}
           </p>
         )}
       </header>
 
-      {feed && !feed.hasKey && (
+      {collectError && (
+        <p className="mt-2 rounded-card bg-amber/10 px-4 py-3 text-[12.5px] leading-relaxed text-ink-2 ring-1 ring-amber/25">
+          最近一次采集没有成功：{collectError}
+          {lastCollection?.status === 429
+            ? "。X 限流了（HTTP 429），等一会儿再试，或者把采集间隔调大。"
+            : "。"}
+        </p>
+      )}
+
+      {feed && mode === "socialdata" && !feed.hasKey && (
         <p className="mt-2 rounded-card border border-line bg-surface px-3 py-2 text-[12.5px] text-ink-3">
           没有配置采集凭证，帖子可能抓不全；到后台的「X 时间线」页面看看怎么配。
         </p>
@@ -295,14 +379,8 @@ export default function XTimelinePage() {
         <EmptyState title="时间线暂时读不到">
           {unavailable ? "站点还没有连上 X 接口，过一会儿再来。" : "还没有内容。"}
         </EmptyState>
-      ) : feed.configured === false ? (
-        <EmptyState title="还没有配置 X 账号">
-          在后台的「X 时间线」页面里指定要看的账号，采集任务会按周期把动态带回来。
-        </EmptyState>
       ) : posts.length === 0 ? (
-        <EmptyState title="还没有采集到帖子">
-          到后台的「X 时间线」页面点一次刷新，采集任务也会按周期继续跑。
-        </EmptyState>
+        <EmptyState title={empty?.title ?? "还没有采集到帖子"}>{empty?.body}</EmptyState>
       ) : kept.length === 0 ? (
         <EmptyState title="没有符合条件的帖子">换一个筛选条件看看。</EmptyState>
       ) : (

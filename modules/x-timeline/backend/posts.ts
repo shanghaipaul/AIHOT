@@ -18,27 +18,37 @@ interface ArticleRow {
   raw: unknown;
 }
 
-/** How many posts a source brought in since a moment: what the daily cap counts. */
-export async function countXPostsSince(sourceId: string, since: Date): Promise<number> {
+/** The ids of the sources, as one list: the module has two rows and both hold posts. */
+function idList(sourceIds: string | string[]): string[] {
+  const list = Array.isArray(sourceIds) ? sourceIds : [sourceIds];
+  return list.filter((id) => typeof id === "string" && id !== "");
+}
+
+/** How many posts the sources brought in since a moment: what the daily cap counts. */
+export async function countXPostsSince(sourceIds: string | string[], since: Date): Promise<number> {
+  const ids = idList(sourceIds);
+  if (!ids.length) return 0;
   try {
     const rows = await sql<{ count: number }[]>`
       SELECT count(*)::int AS count
       FROM articles
-      WHERE source_id = ${sourceId} AND discovered_at >= ${since}`;
+      WHERE source_id IN ${sql(ids)} AND discovered_at >= ${since}`;
     return Number(rows[0]?.count ?? 0);
   } catch {
     return 0;
   }
 }
 
-/** The posts of the source, newest first. The limit is between 1 and 200. */
-export async function loadXPosts(sourceId: string, limit = 50): Promise<XTimelinePost[]> {
+/** The posts of the sources, newest first. The limit is between 1 and 200. */
+export async function loadXPosts(sourceIds: string | string[], limit = 50): Promise<XTimelinePost[]> {
+  const ids = idList(sourceIds);
   const take = Math.max(1, Math.min(200, Math.trunc(limit) || 50));
+  if (!ids.length) return [];
   try {
     const rows = await sql<ArticleRow[]>`
       SELECT id, url, title, excerpt, body_text, published_at, language, x_post, raw
       FROM articles
-      WHERE source_id = ${sourceId}
+      WHERE source_id IN ${sql(ids)}
       ORDER BY published_at DESC NULLS LAST, discovered_at DESC
       LIMIT ${take}`;
     return rows.map(toPost);

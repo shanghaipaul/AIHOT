@@ -1,11 +1,12 @@
 // The pure parts of the module, pinned down: how the username is written, how the query is built,
-// what the six settings default to, and what the api answers. Nothing here touches the database.
+// what the eight settings default to, and what the api answers. Nothing here touches the database.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildXQuery, handleFromQuery, handleKey, normalizeHandle } from "../backend/handle.ts";
 import {
   DEFAULT_DAILY_CAP,
   DEFAULT_INTERVAL_MINUTES,
+  DEFAULT_MIN_GAP_MINUTES,
   X_TIMELINE_KEY,
   X_TIMELINE_SETTINGS,
 } from "../backend/settings.ts";
@@ -41,7 +42,7 @@ test("查询里的账号能被读回来", () => {
   assert.equal(handleFromQuery(null), null);
 });
 
-test("六条配置的键、类型和默认值", () => {
+test("八条配置的键、类型和默认值", () => {
   assert.deepEqual(
     X_TIMELINE_SETTINGS.map((entry) => entry.key),
     [
@@ -49,7 +50,9 @@ test("六条配置的键、类型和默认值", () => {
       "x.timeline.mode",
       "x.timeline.include_replies",
       "x.timeline.cookie",
+      "x.timeline.proxy",
       "x.timeline.interval_minutes",
+      "x.timeline.min_gap_minutes",
       "x.timeline.daily_cap",
     ],
   );
@@ -57,15 +60,19 @@ test("六条配置的键、类型和默认值", () => {
   assert.equal(byKey.get(X_TIMELINE_KEY.handle)?.type, "string");
   assert.equal(byKey.get(X_TIMELINE_KEY.handle)?.default, "");
   assert.equal(byKey.get(X_TIMELINE_KEY.mode)?.type, "enum");
-  assert.equal(byKey.get(X_TIMELINE_KEY.mode)?.default, "socialdata");
-  assert.deepEqual(byKey.get(X_TIMELINE_KEY.mode)?.options, ["socialdata", "cookie"]);
+  assert.equal(byKey.get(X_TIMELINE_KEY.mode)?.default, "syndication");
+  assert.deepEqual(byKey.get(X_TIMELINE_KEY.mode)?.options, ["syndication", "socialdata", "cookie"]);
   assert.equal(byKey.get(X_TIMELINE_KEY.includeReplies)?.type, "bool");
   assert.equal(byKey.get(X_TIMELINE_KEY.includeReplies)?.default, false);
   assert.equal(byKey.get(X_TIMELINE_KEY.cookie)?.secret, true);
   assert.equal(byKey.get(X_TIMELINE_KEY.cookie)?.default, "");
+  assert.equal(byKey.get(X_TIMELINE_KEY.proxy)?.secret, true);
+  assert.equal(byKey.get(X_TIMELINE_KEY.proxy)?.default, "");
   assert.equal(byKey.get(X_TIMELINE_KEY.intervalMinutes)?.type, "int");
   assert.equal(byKey.get(X_TIMELINE_KEY.intervalMinutes)?.default, DEFAULT_INTERVAL_MINUTES);
   assert.equal(byKey.get(X_TIMELINE_KEY.intervalMinutes)?.default, 120);
+  assert.equal(byKey.get(X_TIMELINE_KEY.minGapMinutes)?.type, "int");
+  assert.equal(byKey.get(X_TIMELINE_KEY.minGapMinutes)?.default, DEFAULT_MIN_GAP_MINUTES);
   assert.equal(byKey.get(X_TIMELINE_KEY.dailyCap)?.type, "int");
   assert.equal(byKey.get(X_TIMELINE_KEY.dailyCap)?.default, DEFAULT_DAILY_CAP);
   assert.equal(byKey.get(X_TIMELINE_KEY.dailyCap)?.default, 200);
@@ -78,18 +85,29 @@ test("六条配置的键、类型和默认值", () => {
 test("接口回什么形状：没有帖子时 posts 也是数组", () => {
   const state = buildTimelineState({
     handle: "",
-    mode: "socialdata",
+    mode: "syndication",
     hasKey: false,
     source: null,
     posts: [],
   });
-  assert.deepEqual(Object.keys(state).sort(), ["configured", "handle", "hasKey", "mode", "posts", "source"]);
+  assert.deepEqual(Object.keys(state).sort(), [
+    "configured",
+    "handle",
+    "hasKey",
+    "hasProxy",
+    "lastCollection",
+    "mode",
+    "posts",
+    "source",
+  ]);
   assert.equal(state.configured, false);
   assert.ok(Array.isArray(state.posts));
   assert.equal(state.posts.length, 0);
   assert.equal(state.source, null);
   assert.equal(state.hasKey, false);
-  assert.equal(state.mode, "socialdata");
+  assert.equal(state.hasProxy, false);
+  assert.equal(state.lastCollection, null);
+  assert.equal(state.mode, "syndication");
 });
 
 test("填了用户名就算配置好了，posts 仍然是数组", () => {
@@ -109,8 +127,8 @@ test("采集源回什么形状", () => {
     name: "X @realxing",
     kind: "x_search",
     config: { query: "from:realxing -filter:replies", searchType: "Latest" },
-    tier: "T2",
-    participation_mode: "editorial",
+    tier: "EXCLUDE_MP",
+    participation_mode: "isolated",
     interval_minutes: 120,
     enabled: true,
     health: "ok",
