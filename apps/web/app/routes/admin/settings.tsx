@@ -7,10 +7,16 @@ import { useAdminAction } from "../../features/admin/action";
 import { bj, num } from "../../features/admin/format";
 import { AdminPage, Badge, Button, Card, DataTable, Input, ReasonDialog } from "../../features/admin/ui";
 import { toast } from "../../features/admin/toast";
+import { loadRuntimeConfig } from "../../features/admin/settings/runtime-config.server";
+import { RuntimeConfigCard } from "../../features/admin/settings/runtime-config";
 
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return adminGet<AdminSettings>(request, "/api/admin/settings");
+  const [settings, config] = await Promise.all([
+    adminGet<AdminSettings>(request, "/api/admin/settings"),
+    loadRuntimeConfig(request),
+  ]);
+  return { settings, config };
 }
 
 export const meta: Route.MetaFunction = () => [{ title: `设置 · ${SITE.name} 后台` }];
@@ -99,9 +105,11 @@ function TargetToggle({ t }: { t: AdminSettings["targets"][number] }) {
   );
 }
 
-export default function SettingsAdmin({ loaderData: s }: Route.ComponentProps) {
+export default function SettingsAdmin({ loaderData }: Route.ComponentProps) {
+  const s = loaderData.settings;
   return (
     <AdminPage title="设置" subtitle="不改代码即可替换的运营设置。每次修改都写入审计记录。">
+      <RuntimeConfigCard entries={loaderData.config.entries} error={loaderData.config.error} />
       <div className="grid gap-5 xl:grid-cols-2">
         <Card title="关于页二维码">
           <div className="space-y-5">

@@ -6,6 +6,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { config } from "../config.ts";
+import { runtimeOverrideBool } from "../runtime-config.ts";
 import { sql } from "../db.ts";
 import { sha256 } from "../lib/ids.ts";
 import { loadContact, type ContactSettings } from "../site/contact.ts";
@@ -54,7 +55,7 @@ export async function setTargetEnabled(key: string, enabled: boolean, reason: st
     UPDATE notify_targets SET enabled = ${enabled}, enabled_at = CASE WHEN ${enabled} AND NOT enabled THEN now() ELSE enabled_at END, updated_at = now()
     WHERE key = ${key} RETURNING key, enabled, enabled_at`;
   await audit(actor, enabled ? "notify.enable" : "notify.disable", `notify-target:${key}`, reason, before, after);
-  return { ...after, pushEnabledHere: config.feishuContentPushEnabled };
+  return { ...after, pushEnabledHere: runtimeOverrideBool("push.feishu.enabled") ?? config.feishuContentPushEnabled };
 }
 
 export async function listBudgets(): Promise<BeforeJson<AdminBudget>[]> {

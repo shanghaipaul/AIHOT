@@ -2,6 +2,7 @@
 // (EMBEDDING_BASE_URL, EMBEDDING_API_KEY, EMBEDDING_MODEL); with a DashScope key and nothing else set,
 // Aliyun text-embedding-v4 at 1024 dimensions. Without either, recall compares the texts themselves.
 import { config, credential } from "../config.ts";
+import { runtimeOverrideBool } from "../runtime-config.ts";
 import { sql } from "../db.ts";
 import { sha256 } from "../lib/ids.ts";
 import { z } from "zod";
@@ -17,11 +18,11 @@ const VECTOR = EMBEDDING_DIMS > 0 ? z.array(z.number()).length(EMBEDDING_DIMS) :
 
 /** Embeddings are paid model calls: MODEL_CALLS_ENABLED=false switches them off like every other call. */
 export function embeddingsAvailable(): boolean {
-  return config.modelCallsEnabled && !!(credential("models", "EMBEDDING_API_KEY") ?? credential("models", "DASHSCOPE_API_KEY"));
+  return (runtimeOverrideBool("model.calls.enabled") ?? config.modelCallsEnabled) && !!(credential("models", "EMBEDDING_API_KEY") ?? credential("models", "DASHSCOPE_API_KEY"));
 }
 
 async function embedBatch(texts: string[], subject: string): Promise<{ vectors: number[][]; receiptId: number }> {
-  if (!config.modelCallsEnabled) throw new ModelUnavailableError("Model calls are disabled (MODEL_CALLS_ENABLED=false)");
+  if (!(runtimeOverrideBool("model.calls.enabled") ?? config.modelCallsEnabled)) throw new ModelUnavailableError("Model calls are disabled (MODEL_CALLS_ENABLED=false)");
   const base = own ? credential("models", "EMBEDDING_BASE_URL") ?? "https://api.openai.com/v1" : credential("models", "DASHSCOPE_BASE_URL") ?? "https://dashscope.aliyuncs.com/compatible-mode/v1";
   const key = own ? credential("models", "EMBEDDING_API_KEY") : credential("models", "DASHSCOPE_API_KEY");
   if (!key) throw new ModelUnavailableError("EMBEDDING_API_KEY (or DASHSCOPE_API_KEY) missing");

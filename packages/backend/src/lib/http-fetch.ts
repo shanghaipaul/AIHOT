@@ -3,6 +3,7 @@ import net from "node:net";
 import { addAbortListener } from "node:events";
 import { Agent, Pool, ProxyAgent, fetch as undiciFetch, type Dispatcher } from "undici";
 import { config } from "../config.ts";
+import { runtimeOverrideBool } from "../runtime-config.ts";
 import { assertPublicUrl, guardedLookup } from "./url.ts";
 import { createEgressProxy, createEgressResolver, OUTBOUND_HTTP_OPTIONS } from "./egress-proxy.ts";
 import { DEPLOYMENT, SITE } from "@aihot/site";
@@ -50,7 +51,7 @@ function dispatcherFor(viaProxy: boolean, privateHost: boolean): Dispatcher | un
     proxyAgent ??= createEgressProxy(config.egressProxyUrl!, egressResolver(), destinationPool);
     return proxyAgent;
   }
-  if (config.allowPrivateNetworkFetch) return undefined;
+  if (runtimeOverrideBool("fetch.allow_private_network") ?? config.allowPrivateNetworkFetch) return undefined;
   if (privateHost) {
     // The listed name may resolve to a private service; the address dialled is still checked.
     privateFeedAgent ??= new Agent({ ...OUTBOUND_HTTP_OPTIONS, factory: destinationPool, connect: {
@@ -122,7 +123,7 @@ export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}
   const route = opts.route ?? "egress";
   const configuredHost = hostOf(new URL(input));
   const privateHosts = opts.privateFeedHost && config.privateFeedHosts.includes(configuredHost) ? [configuredHost] : [];
-  const check = (target: string) => withinDeadline(assertPublicUrl(target, config.allowPrivateNetworkFetch,
+  const check = (target: string) => withinDeadline(assertPublicUrl(target, runtimeOverrideBool("fetch.allow_private_network") ?? config.allowPrivateNetworkFetch,
     proxied(new URL(target), route, privateHosts) ? egressResolver() : undefined, privateHosts), signal);
   let url = await check(input);
   const maxRedirects = opts.maxRedirects ?? 5;

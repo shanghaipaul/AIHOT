@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { audit, Conflict } from "../audit.ts";
 import { config, credential } from "../config.ts";
+import { runtimeOverrideBool } from "../runtime-config.ts";
 import { sql } from "../db.ts";
 import { postWebhook } from "./feishu.ts";
 import { selectedContent } from "./selected-content.ts";
@@ -89,7 +90,7 @@ export async function deliverContent(req: DeliveryRequest): Promise<Array<{ targ
     });
     if (!claim) continue;
     const { id, target: t } = claim;
-    if (!config.feishuContentPushEnabled || t.kind !== "feishu_webhook") {
+    if (!(runtimeOverrideBool("push.feishu.enabled") ?? config.feishuContentPushEnabled) || t.kind !== "feishu_webhook") {
       await sql`UPDATE deliveries SET status = 'skipped', response = 'content push disabled', updated_at = now() WHERE id = ${id}`;
       results.push({ target: t.key, status: "skipped" });
       continue;
@@ -116,7 +117,7 @@ export async function resendDelivery(id: number, version?: string): Promise<{ st
     FROM deliveries d JOIN notify_targets t ON t.key = d.target_key WHERE d.id = ${id}`;
   if (!d) throw new Error(`delivery ${id} not found`);
   if (d.status !== "unknown" && d.status !== "failed") throw new Conflict("这条投递不需要处理");
-  if (!config.feishuContentPushEnabled || d.kind !== "feishu_webhook") throw new Error("content push is disabled in this environment");
+  if (!(runtimeOverrideBool("push.feishu.enabled") ?? config.feishuContentPushEnabled) || d.kind !== "feishu_webhook") throw new Error("content push is disabled in this environment");
   if (!d.enabled) throw new Conflict("这个推送群已停用");
   const current = d.subject_kind === "selected" ? await selectedContent(d.subject_id) : null;
   if (current && (current.status !== "ready" || (d.enabled_at && current.article.discovered_at < d.enabled_at))) {
