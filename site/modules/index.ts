@@ -6,6 +6,5 @@ import { DAILY_PUSH } from "@aihot/daily-push/module";
 import { GITHUB_TRENDING } from "@aihot/github-trending/module";
 import { FREEBIES } from "@aihot/freebies/module";
 import { YOUTUBE } from "@aihot/youtube/module";
-import { X_TIMELINE } from "@aihot/x-timeline/module";
 
-export const MODULES: readonly ModuleDeclaration[] = [DAILY_PUSH, GITHUB_TRENDING, FREEBIES, YOUTUBE, X_TIMELINE];
+export const MODULES: readonly ModuleDeclaration[] = [DAILY_PUSH, GITHUB_TRENDING, FREEBIES, YOUTUBE];

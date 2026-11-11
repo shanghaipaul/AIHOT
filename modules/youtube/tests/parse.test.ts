@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { durationToSeconds, extractInitialJson, limitFromEnv, parseChannelPage } from "../backend/fetch.ts";
-import { parseVtt, subtitleRetryDays, transcriptLimit, windowDays } from "../backend/transcript.ts";
+import { parseVtt, windowDays } from "../backend/transcript.ts";
 import { clampLists, statusForError } from "../backend/analyze.ts";
 
 const VTT = [
@@ -106,42 +106,16 @@ test("limitFromEnv 读环境变量，非法值回落默认", () => {
   delete process.env[key];
 });
 
-test("字幕补齐的时间窗口可以配置，默认不限历史", () => {
+test("字幕补齐的时间窗口可以配置，非法值回落 7 天", () => {
   const key = "YOUTUBE_TRANSCRIPT_WINDOW_DAYS";
   delete process.env[key];
-  assert.equal(windowDays(), 0);
+  assert.equal(windowDays(), 7);
   process.env[key] = "90";
   assert.equal(windowDays(), 90);
   process.env[key] = "abc";
-  assert.equal(windowDays(), 0);
-  process.env[key] = "-3";
-  assert.equal(windowDays(), 0);
-  delete process.env[key];
-});
-
-test("字幕补齐的条数上限可以配置，默认不限", () => {
-  const key = "YOUTUBE_TRANSCRIPT_LIMIT";
-  delete process.env[key];
-  assert.equal(transcriptLimit(), 0);
-  process.env[key] = "12";
-  assert.equal(transcriptLimit(), 12);
-  process.env[key] = "abc";
-  assert.equal(transcriptLimit(), 0);
-  process.env[key] = "-1";
-  assert.equal(transcriptLimit(), 0);
-  delete process.env[key];
-});
-
-test("没有字幕的视频多久重试一次，默认 7 天", () => {
-  const key = "YOUTUBE_SUBTITLE_RETRY_DAYS";
-  delete process.env[key];
-  assert.equal(subtitleRetryDays(), 7);
-  process.env[key] = "30";
-  assert.equal(subtitleRetryDays(), 30);
-  process.env[key] = "abc";
-  assert.equal(subtitleRetryDays(), 7);
+  assert.equal(windowDays(), 7);
   process.env[key] = "0";
-  assert.equal(subtitleRetryDays(), 7);
+  assert.equal(windowDays(), 7);
   delete process.env[key];
 });
 

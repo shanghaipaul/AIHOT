@@ -1,11 +1,7 @@
 // 字幕：从 invidious 实例拿 WebVTT，清洗成纯文本再写回视频表。
 // 直连 YouTube 的 timedtext 现在要 poToken，拿到的是空body，所以只走 invidious 这条路。
-// 拿到的字幕还会归档：原始 vtt 和去掉时间轴的纯文本各存一份到 dataDir，页面和下载直接读它。
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { sql } from "@aihot/backend/db";
-import { config } from "@aihot/backend/config";
-import { fetchJson, fetchText, invidiousInstances } from "./fetch.ts";
+import { fetchJson, fetchText, invidiousInstances, limitFromEnv } from "./fetch.ts";
 
 /** 字幕里常见的 HTML 实体，WebVTT 里这几个最常出现。 */
 const ENTITIES: Record<string, string> = {
@@ -164,7 +160,6 @@ function hostOf(instance: string): string {
  * 所以列表和下载可以落在不同的实例上。取不到就返回 null。
  * 实测（2026-11）：实例给的字幕列表和观看页里的 captionTracks 是一致的，
  * 拿不到字幕是视频本身没有字幕，不是实例挑错了轨。
- * 拿到之后顺手归档：原始 vtt 和纯文本各存一份，页面和下载直接用。
  */
 export async function fetchTranscript(videoId: string): Promise<{ text: string; lang: string; source: string } | null> {
   for (const instance of invidiousInstances()) {
@@ -191,12 +186,7 @@ export async function fetchTranscript(videoId: string): Promise<{ text: string; 
     if (!vtt) continue;
     const text = parseVtt(vtt);
     if (text.trim() === "") continue;
-    const language = picked.languageCode ?? picked.label;
-    // 归档失败不该拦住字幕入库：文件只是备份，表里的正文才是要紧的。
-    await archiveSubtitle({ videoId, language, provider: hostOf(instance), rawVtt: vtt }).catch((error: unknown) => {
-      console.error("youtube: 字幕归档 " + videoId + " 失败", error);
-    });
-    return { text, lang: language, source: hostOf(instance) };
+    return { text, lang: picked.languageCode ?? picked.label, source: hostOf(instance) };
   }
   return null;
 }
@@ -208,251 +198,21 @@ export async function fetchTranscript(videoId: string): Promise<{ text: string; 
 const RETRY_GAP_MS = 2_500;
 
 /**
- * 往前看多少天：0 表示不限。
- * 用户要的是全部字幕（不用去看视频），所以默认不限时间，历史缺字幕的也补；
- * YOUTUBE_TRANSCRIPT_WINDOW_DAYS 是安全阀，调小就只看最近的。
+ * 往前看多少天：默认一周，只补最近的新视频；补历史的时候把
+ * YOUTUBE_TRANSCRIPT_WINDOW_DAYS 调大（频道一周不一定发 12 条，一周窗口常常是空的）。
  */
 export function windowDays(): number {
-  const value = Number(process.env.YOUTUBE_TRANSCRIPT_WINDOW_DAYS ?? 0);
-  if (!Number.isFinite(value) || value < 0) return 0;
-  return Math.floor(value);
+  const value = Number(process.env.YOUTUBE_TRANSCRIPT_WINDOW_DAYS ?? 7);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 7;
 }
 
-/**
- * 一次补多少条：0 表示不限（默认）。
- * 同上，用户要的是全部字幕；YOUTUBE_TRANSCRIPT_LIMIT 是安全阀，调小就是限量。
- */
-export function transcriptLimit(): number {
-  const value = Number(process.env.YOUTUBE_TRANSCRIPT_LIMIT ?? 0);
-  if (!Number.isFinite(value) || value < 0) return 0;
-  return Math.floor(value);
-}
-
-// ------------------------------------------------------------------ 归档
-
-/** 文件名里不能有的字符：路径分隔符和 Windows 那些保留字符。 */
-const ILLEGAL_NAME_CHARS = /[\\/:*?"<>|\u0000-\u001f]/g;
-
-/**
- * 文件名安全化：视频 id 和语言代码都是外面来的，
- * 去掉路径分隔符等非法字符，免得写到目录外面去。
- */
-export function safeFilePart(value: string): string {
-  const cleaned = value.replace(ILLEGAL_NAME_CHARS, "_").trim().replace(/\s+/g, "_").replace(/^\.+/, "").trim();
-  return cleaned === "" ? "unknown" : cleaned.slice(0, 64);
-}
-
-/** 一条字幕归档落在哪儿：<data dir>/youtube/subtitles/<video>.<lang>.vtt。 */
-export function subtitleFilePath(videoId: string, language: string, dataDir: string, ext: "vtt" | "txt" = "vtt"): string {
-  return path.join(dataDir, "youtube", "subtitles", safeFilePart(videoId) + "." + safeFilePart(language) + "." + ext);
-}
-
-/** 纯文本那份字幕落在哪儿：同一个目录，扩展名是 txt。 */
-export function subtitleTextFilePath(videoId: string, language: string, dataDir: string): string {
-  return subtitleFilePath(videoId, language, dataDir, "txt");
-}
-
-/** 空字幕不归档：这个视频本来就没有字幕，留一条空记录没有意义。 */
-export function subtitleContent(rawVtt: string): string | null {
-  const content = rawVtt.trim();
-  return content === "" ? null : content;
-}
-
-/** 去掉时间轴的纯文本；空输入给出 null。 */
-export function subtitleText(rawVtt: string): string | null {
-  const text = parseVtt(rawVtt);
-  return text.trim() === "" ? null : text;
-}
-
-/** 过期线：now 往前推 days 天。 */
-export function subtitleCutoff(days: number, now: Date = new Date()): Date {
-  const limit = Number.isFinite(days) && days > 0 ? days : 90;
-  return new Date(now.getTime() - limit * 24 * 60 * 60 * 1000);
-}
-
-/** 字幕过期了没有：纯函数，方便测试。 */
-export function isSubtitleExpired(fetchedAt: Date | string, days: number, now: Date = new Date()): boolean {
-  const at = fetchedAt instanceof Date ? fetchedAt : new Date(fetchedAt);
-  if (Number.isNaN(at.getTime())) return false;
-  return at.getTime() < subtitleCutoff(days, now).getTime();
-}
-
-/** 时间统一写成 ISO 字符串。 */
-function iso(value: Date | string | null | undefined): string {
-  if (!value) return new Date().toISOString();
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
-}
-
-/** 归档表的一行：原始 vtt 和去掉时间轴的纯文本都在里面。 */
-export interface ArchivedSubtitle {
-  videoId: string;
-  language: string;
-  provider: string;
-  fetchedAt: string;
-  content: string;
-  contentText: string;
-}
-
-/**
- * 归档一条字幕：写 vtt、写纯文本、写表，再记下这个视频的字幕检查时间。
- * 字幕是空的就什么都不做，返回 null。
- */
-export async function archiveSubtitle(input: {
-  videoId: string;
-  language: string;
-  provider: string;
-  rawVtt: string;
-}): Promise<ArchivedSubtitle | null> {
-  const content = subtitleContent(input.rawVtt);
-  if (content === null) return null;
-  const text = subtitleText(input.rawVtt) ?? "";
-  const file = subtitleFilePath(input.videoId, input.language, config.dataDir);
-  const textFile = subtitleTextFilePath(input.videoId, input.language, config.dataDir);
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, content, "utf8");
-  await writeFile(textFile, text, "utf8");
-  let fetchedAt = new Date().toISOString();
-  try {
-    const rows = await sql<{ fetched_at: Date }[]>`
-      INSERT INTO youtube_subtitles (video_id, language, provider, content, content_text, fetched_at)
-      VALUES (${input.videoId}, ${input.language}, ${input.provider}, ${content}, ${text}, now())
-      ON CONFLICT (video_id) DO UPDATE SET
-        language = EXCLUDED.language,
-        provider = EXCLUDED.provider,
-        content = EXCLUDED.content,
-        content_text = EXCLUDED.content_text,
-        fetched_at = now()
-      RETURNING fetched_at`;
-    fetchedAt = iso(rows[0]?.fetched_at);
-  } catch (error) {
-    // 表还没建好或者写不进去时，文件已经落盘了，不算失败。
-    console.error("youtube: 字幕归档入库 " + input.videoId + " 失败", error);
-  }
-  await markTranscriptChecked(input.videoId);
-  return {
-    videoId: input.videoId,
-    language: input.language,
-    provider: input.provider,
-    fetchedAt,
-    content,
-    contentText: text,
-  };
-}
-
-/** 读一条归档的字幕；没有就 null。 */
-export async function fetchArchivedSubtitle(videoId: string): Promise<ArchivedSubtitle | null> {
-  try {
-    const rows = await sql<{
-      video_id: string; language: string; provider: string; fetched_at: Date; content: string; content_text: string | null;
-    }[]>`
-      SELECT video_id, language, provider, fetched_at, content, content_text
-      FROM youtube_subtitles WHERE video_id = ${videoId}`;
-    const row = rows[0];
-    if (!row) return null;
-    return {
-      videoId: row.video_id,
-      language: row.language,
-      provider: row.provider,
-      fetchedAt: iso(row.fetched_at),
-      content: row.content,
-      contentText: row.content_text ?? "",
-    };
-  } catch {
-    // 表还没有的时候只是没有字幕，不是错误。
-    return null;
-  }
-}
-
-/** 记下这个视频查过字幕（哪怕没有字幕），省得每轮都去问实例。 */
-export async function markTranscriptChecked(videoId: string): Promise<void> {
-  try {
-    await sql`UPDATE youtube_videos SET transcript_checked_at = now() WHERE video_id = ${videoId}`;
-  } catch {
-    // 列还没有的时候不影响别的。
-  }
-}
-
-/**
- * 清理超期的字幕文件：只删磁盘上的 vtt 和 txt，表里的正文留着。
- * 理由：用户要的是长期留档（不用去看视频），正文在库里能读能导出；
- * 删掉磁盘上的副本只是省地方，要删正文得另外一条命令。
- */
-export async function purgeExpiredSubtitles(days = 90, now: Date = new Date()): Promise<number> {
-  const cutoff = subtitleCutoff(days, now);
-  try {
-    const rows = await sql<{ video_id: string; language: string }[]>`
-      SELECT video_id, language FROM youtube_subtitles WHERE fetched_at < ${cutoff}`;
-    let purged = 0;
-    for (const row of rows) {
-      const files = [
-        subtitleFilePath(row.video_id, row.language, config.dataDir),
-        subtitleTextFilePath(row.video_id, row.language, config.dataDir),
-      ];
-      for (const file of files) {
-        try {
-          await rm(file);
-          purged += 1;
-        } catch {
-          // 文件已经不在了，就当删过了。
-        }
-      }
-    }
-    return purged;
-  } catch {
-    // 表还没有的时候没有东西可清。
-    return 0;
-  }
-}
-
-/** 一次补字幕的结果：补上几条、失败几条、跳过几条、还剩几条。 */
-export interface BackfillResult {
-  filled: number;
-  failed: number;
-  skipped: number;
-  remaining: number;
-}
-
-
-/**
- * 确认没有字幕的视频，多久再去问一次实例。
- * 默认 7 天：字幕有可能过几天才补上，但也别每轮都去打扰实例。
- */
-export function subtitleRetryDays(): number {
-  const value = Number(process.env.YOUTUBE_SUBTITLE_RETRY_DAYS ?? 7);
-  if (!Number.isFinite(value) || value <= 0) return 7;
-  return Math.floor(value);
-}
-
-/**
- * 把库里缺字幕的视频补齐：逐个视频去问实例。
- * 默认不限量也不限时间（用户要的是全部字幕），一次跑不完不报错，再触发一次接着跑。
- * 候选是"还没有归档字幕"的视频：正文早就有的也要再问一次，
- * 因为用户要的是落盘的文件（原始 vtt 和纯文本），不是库里那一段文字。
- */
-export async function backfillSubtitles(limit = transcriptLimit()): Promise<BackfillResult> {
+export async function enrichTranscripts(limit = limitFromEnv("YOUTUBE_TRANSCRIPT_LIMIT")): Promise<number> {
   const days = windowDays();
-  const cap = limit > 0 ? limit : 100000;
-  const retryDays = subtitleRetryDays();
-  const rows = days > 0
-    ? await sql<{ video_id: string }[]>`
-        SELECT v.video_id FROM youtube_videos v
-        LEFT JOIN youtube_subtitles s ON s.video_id = v.video_id
-        WHERE s.video_id IS NULL
-          AND (v.transcript_checked_at IS NULL OR v.transcript_checked_at < now() - ${retryDays} * interval '1 day')
-          AND v.published_at > now() - ${days} * interval '1 day'
-        ORDER BY v.published_at DESC NULLS LAST
-        LIMIT ${cap}`
-    : await sql<{ video_id: string }[]>`
-        SELECT v.video_id FROM youtube_videos v
-        LEFT JOIN youtube_subtitles s ON s.video_id = v.video_id
-        WHERE s.video_id IS NULL
-          AND (v.transcript_checked_at IS NULL OR v.transcript_checked_at < now() - ${retryDays} * interval '1 day')
-        ORDER BY v.published_at DESC NULLS LAST
-        LIMIT ${cap}`;
-  let filled = 0;
-  let failed = 0;
-  let skipped = 0;
+  const rows = await sql<{ video_id: string }[]>`SELECT video_id FROM youtube_videos
+    WHERE transcript IS NULL AND published_at > now() - ${days} * interval '1 day'
+    ORDER BY published_at DESC
+    LIMIT ${limit}`;
+  let count = 0;
   for (const row of rows) {
     try {
       let transcript = await fetchTranscript(row.video_id);
@@ -462,37 +222,19 @@ export async function backfillSubtitles(limit = transcriptLimit()): Promise<Back
         await sleep(RETRY_GAP_MS);
         transcript = await fetchTranscript(row.video_id);
       }
-      if (!transcript) {
-        await markTranscriptChecked(row.video_id);
-        skipped += 1;
-        continue;
-      }
+      if (!transcript) continue;
       await sql`
         UPDATE youtube_videos
         SET transcript = ${transcript.text},
             transcript_source = ${transcript.source},
             transcript_lang = ${transcript.lang},
-            transcript_checked_at = now(),
             updated_at = now()
         WHERE video_id = ${row.video_id}`;
-      filled += 1;
+      count += 1;
     } catch (error) {
       // 一条视频出问题不能让整轮停掉，记下来继续下一条。
-      failed += 1;
       console.error("youtube: 字幕补齐 " + row.video_id + " 失败", error);
     }
   }
-  const rest = await sql<{ count: number }[]>`
-        SELECT count(*)::int AS count
-        FROM youtube_videos v
-        LEFT JOIN youtube_subtitles s ON s.video_id = v.video_id
-        WHERE s.video_id IS NULL
-          AND (v.transcript_checked_at IS NULL OR v.transcript_checked_at < now() - ${retryDays} * interval '1 day')`;
-  return { filled, failed, skipped, remaining: Number(rest[0]?.count ?? 0) };
-}
-
-/** 补字幕（定时任务用）：返回补上的条数。 */
-export async function enrichTranscripts(limit = transcriptLimit()): Promise<number> {
-  const result = await backfillSubtitles(limit);
-  return result.filled;
+  return count;
 }

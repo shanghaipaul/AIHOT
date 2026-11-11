@@ -16,7 +16,6 @@
     "@aihot/daily-push": "*",
     "@aihot/freebies": "*",
     "@aihot/github-trending": "*",
-    "@aihot/x-timeline": "*",
     "@aihot/youtube": "*"
   }
 }
