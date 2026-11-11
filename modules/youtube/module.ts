@@ -1,10 +1,15 @@
-// The addresses of the youtube module: the list page (/youtube) and the api the page reads
-// (/api/youtube/). The web server forwards those prefixes to the api process, so a reader reaches the
-// list without the page knowing where the answer came from.
+// The addresses of the youtube module: the list page (/youtube), the subtitle library that reads
+// the texts instead of the videos (/youtube/transcripts) and the api the pages read (/api/youtube/).
+// The web server forwards those prefixes to the api process, so a reader reaches the list without the
+// page knowing where the answer came from.
 import { defineModule } from "@aihot/contracts/modules";
 
 export const YOUTUBE = defineModule({
   name: "youtube",
-  pages: [{ path: "youtube", file: "pages/youtube.tsx" }],
+  pages: [
+    { path: "youtube", file: "pages/youtube.tsx" },
+    { path: "youtube/transcripts", file: "pages/transcripts.tsx" },
+    { path: "youtube/digest", file: "pages/digest.tsx" },
+  ],
   apiPaths: [/^\/api\/youtube\//],
 });
