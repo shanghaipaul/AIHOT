@@ -1,6 +1,7 @@
 // Cron-style schedules (Asia/Shanghai), the engine's and then the site's modules'. Each run is recorded in
 // job_runs; missed slots run once.
 import type { PgBoss } from "pg-boss";
+import { runtimeOverrideBool } from "@aihot/backend/runtime-config";
 import { ensureQueue, recordRun } from "@aihot/backend/jobs/queue";
 import { serverModules, type Scheduled } from "@aihot/backend/modules";
 import { sweepUnprocessed } from "@aihot/backend/jobs/content";
@@ -21,7 +22,8 @@ import { forwardPendingFeedback } from "@aihot/backend/operations/feedback";
 import { backupConfigured, runBackup } from "@aihot/backend/operations/backup";
 import { sourceHealthWeekly } from "@aihot/backend/operations/reports";
 
-const collecting = process.env.COLLECT_ENABLED === "true";
+// Read at run time, so the admin switch works without a restart.
+const collecting = () => runtimeOverrideBool("collect.enabled") ?? (process.env.COLLECT_ENABLED === "true");
 
 const ENGINE_SCHEDULES: Scheduled[] = [
   { name: "content.sweep", cron: "*/5 * * * *", run: sweepUnprocessed },
@@ -48,18 +50,17 @@ const ENGINE_SCHEDULES: Scheduled[] = [
   { name: "feedback.forward", cron: "*/10 * * * *", run: () => forwardPendingFeedback() },
   ...(backupConfigured() ? [{ name: "ops.backup", cron: "10 4 * * *", missed: "once" as const, run: () => runBackup() }] : []),
   { name: "reports.source-health", cron: "0 9 * * 1", missed: "once", run: () => sourceHealthWeekly() },
-  ...(collecting
-    ? [
-        { name: "sources.schedule", cron: "* * * * *", run: () => scheduleDueSources() },
-        { name: "sources.adapt-intervals", cron: "20 4 * * *", run: adaptIntervals },
-        // X accounts quiet for a day: a renamed one is followed to its new handle (SocialData, paid per lookup).
-        { name: "sources.x-renames", cron: "50 4 * * *", missed: "once" as const, run: () => followXRenames() },
-        // Icons are read from the sources' own sites, so they stop with collection.
-        { name: "sources.icons", cron: "40 4 * * *", missed: "once" as const, run: () => refreshSourceIcons() },
-      ]
-    : []),
+  // The collection timers are always registered; each one reads the collect switch when it fires, so
+  // the admin can stop and start collection without restarting the worker. A timer that is off leaves
+  // no line in the run log.
+  { name: "sources.schedule", cron: "* * * * *", run: () => scheduleDueSources(), skip: () => !collecting() },
+  { name: "sources.adapt-intervals", cron: "20 4 * * *", run: adaptIntervals, skip: () => !collecting() },
+  // X accounts quiet for a day: a renamed one is followed to its new handle (SocialData, paid per lookup).
+  { name: "sources.x-renames", cron: "50 4 * * *", missed: "once" as const, run: () => followXRenames(), skip: () => !collecting() },
+  // Icons are read from the sources' own sites, so they stop with collection.
+  { name: "sources.icons", cron: "40 4 * * *", missed: "once" as const, run: () => refreshSourceIcons(), skip: () => !collecting() },
   // WeChat official accounts through Dajiala (paid), each once per its interval; only with its key.
-  ...(collecting && dajialaConfigured() ? [{ name: "sources.mp-reconcile", cron: "*/15 * * * *", run: () => scheduleMpReconcile() }] : []),
+  ...(dajialaConfigured() ? [{ name: "sources.mp-reconcile", cron: "*/15 * * * *", run: () => scheduleMpReconcile(), skip: () => !collecting() }] : []),
 ];
 
 export async function registerSchedules(boss: PgBoss) {
@@ -69,7 +70,11 @@ export async function registerSchedules(boss: PgBoss) {
     await ensureQueue(queue, { policy: "singleton", retryLimit: 1, expireInSeconds: 3600 });
     await boss.schedule(queue, s.cron, {}, { tz: "Asia/Shanghai", missed: s.missed ?? "skip" });
     // Schedules fire at minute boundaries; a 15 s pickup keeps them on time with a third of the polling.
-    await boss.work(queue, { pollingIntervalSeconds: 15 }, async () => recordRun(s.name, s.run));
+    await boss.work(queue, { pollingIntervalSeconds: 15 }, async () => {
+      // A schedule that is off right now does its work and leaves no trace in the run log.
+      if (s.skip?.()) return undefined;
+      return recordRun(s.name, s.run);
+    });
   }
   // Retired or disabled timers must leave no queued work behind, including queues an earlier release
   // already unscheduled. pg-boss deletes the queue's jobs and schedules; job_runs retains its audit.

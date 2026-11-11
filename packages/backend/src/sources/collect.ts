@@ -12,6 +12,7 @@ import { BudgetExceededError, completeReceipt } from "../providers/receipts.ts";
 import { fetchRss } from "./rss.ts";
 import { fetchDetail, fetchWebList, isCallToActionTitle, needsTitle, type DetailNeed } from "./web-list.ts";
 import { unsupportedConfig } from "./config-keys.ts";
+import { runtimeOverrideBool } from "../runtime-config.ts";
 import { admitListing, filterPublicationWindow } from "./filters.ts";
 import { fetchJsonList } from "./json-list.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, selfThreadHandle, SHARDABLE_SQL, tweetToCandidate, type XBacklog } from "./x.ts";
@@ -282,6 +283,9 @@ export async function collectSource(sourceId: string, opts: { force?: boolean; x
   const source = await loadSource(sourceId);
   if (!source) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "missing" };
   if (!source.enabled && !opts.force) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "paused" };
+  // The collect switch is read when the job runs, so the admin can stop collection without a
+  // restart; a manual fetch from the admin always goes through.
+  if (!opts.force && runtimeOverrideBool("collect.enabled") === false) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "collect disabled" };
   if (source.kind === "mp_account" || source.kind === "external") {
     // WeChat accounts are reconciled by the mp job; external sources only receive reports.
     return { sourceId, status: "skipped", found: 0, created: 0, revised: 0 };
@@ -404,6 +408,7 @@ function coveredTo(m: SourceRow): bigint {
  * each account's cursor, so they survive a change of shards.
  */
 export async function collectXShard(key: string, sourceIds: string[]): Promise<{ key: string; status: "ok" | "failed" | "skipped"; accounts: number; found: number; created: number; error?: string }> {
+  if (runtimeOverrideBool("collect.enabled") === false) return { key, status: "skipped", accounts: 0, found: 0, created: 0 };
   const members = (
     await sql<SourceRow[]>`
       SELECT id, name, kind, config, tier, participation_mode, first_party, interval_minutes, enabled, cursor, fail_count
@@ -481,6 +486,7 @@ async function scheduleXShards(): Promise<number> {
 
 /** Every minute: enqueue due sources (enabled, not WeChat/external), oldest due first; X accounts by shard. */
 export async function scheduleDueSources(): Promise<{ enqueued: number; shards: number }> {
+  if (runtimeOverrideBool("collect.enabled") === false) return { enqueued: 0, shards: 0 };
   const rows = await sql<{ id: string }[]>`
     SELECT id FROM sources
     WHERE enabled AND kind IN ('rss', 'web_list', 'json_list', 'x_search') AND (next_fetch_at IS NULL OR next_fetch_at <= now()) AND NOT (${sharded()})
@@ -502,6 +508,7 @@ const shardMinutes = (mode: string) => X_SHARD_MINUTES[mode] ?? 60;
  * hot_signal sources are allowed to be slower.
  */
 export async function adaptIntervals(): Promise<{ updated: number }> {
+  if (runtimeOverrideBool("collect.enabled") === false) return { updated: 0 };
   const rows = await sql<Array<Pick<SourceRow, "id" | "participation_mode" | "kind" | "config" | "cursor"> & { paid_listing: boolean; per_day: number }>>`
     SELECT s.id, s.participation_mode, s.kind, s.config, s.cursor, coalesce(s.config->>'url', '') LIKE 'https://r.jina.ai/%' AS paid_listing,
       (SELECT count(*) FROM articles a WHERE a.source_id = s.id AND a.discovered_at > now() - interval '7 days' AND NOT a.backfill) / 7.0 AS per_day

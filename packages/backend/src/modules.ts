@@ -7,6 +7,7 @@ import type { WorkOptions } from "pg-boss";
 import type { z } from "zod";
 import type { Brand } from "@aihot/contracts/site";
 import type { Db } from "./db.ts";
+import { registerConfigEntries, type ConfigEntry } from "./runtime-config.ts";
 import type { QueueOptions } from "./jobs/queue.ts";
 import type { Finding } from "./notify/feishu.ts";
 import type { Topic, TopicMember } from "./publication/topics.ts";
@@ -19,6 +20,8 @@ export interface Scheduled {
   missed?: "skip" | "once";
   /** Read when the worker starts, after the modules are installed: false removes the schedule and its execution queue; run history remains. */
   when?: () => boolean;
+  /** Read every time the timer fires: true keeps the schedule out of the run log and leaves its work undone. */
+  skip?: () => boolean;
 }
 
 /** A model step (editorial/models.ts); its default model comes from site/models.ts, else `default`. */
@@ -207,6 +210,8 @@ export interface ServerModule {
     runs?: () => Promise<unknown>;
   };
   models?: Record<string, ModelStep>;
+  /** Its own entries for the runtime configuration (admin/config.ts); the admin page shows them next to the engine ones. */
+  settings?: readonly ConfigEntry[];
   /** Cron schedules (the worker). */
   schedules?: Scheduled[];
   /** What is wrong now, for the owner's alerts (operations/alerts.ts), after the engine's problems. */
@@ -268,6 +273,8 @@ let installed: readonly ServerModule[] = [];
 /** Called once by each process's entry point, and by a module's tests for that module. */
 export function installModules(modules: readonly ServerModule[]): void {
   installed = modules;
+  // A module brings its own configuration entries with it.
+  for (const m of modules) registerConfigEntries(m.settings ?? []);
 }
 
 export function serverModules(): readonly ServerModule[] {

@@ -1,5 +1,6 @@
 // SocialData (X search). Paid per request: every call goes through receipts and the budget.
 import { credential } from "../config.ts";
+import { runtimeString } from "../runtime-config.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { assertAccepted, paidRequest, ProviderRejectedError, type CallOutcome, type ReceiptRequest, type ReceiptResult } from "./receipts.ts";
 
@@ -63,7 +64,8 @@ function apiBase(): string {
  */
 async function get<T>(path: string, request: Omit<ReceiptRequest, "service">,
   read: { timeoutMs: number; maxBytes: number; missing?: Record<string, unknown>; settle: (json: T) => CallOutcome }): Promise<ReceiptResult> {
-  const key = credential("collectors", "SOCIALDATA_API_KEY");
+  // The key comes from the configuration centre first, then the environment, then the credentials file.
+  const key = runtimeString("socialdata.api_key") || credential("collectors", "SOCIALDATA_API_KEY");
   if (!key) throw new Error("SOCIALDATA_API_KEY is not configured");
   return paidRequest({ service: "socialdata", ...request }, async () => {
     const res = await guardedFetch(`${apiBase()}${path}`, {
