@@ -4,6 +4,8 @@
 @source "../../../site/brand";
 @source "../../../site/changelog";
 @source "../../../modules/*/{web.tsx,web/**}";
+/* A module's page is its own file (modules/<name>/pages/*.tsx), so its classes are scanned too. */
+@source "../../../modules/*/pages/*.tsx";
 
 /* ---------------------------------------------------------------------------
    Design tokens: warm off-white paper, ink text, one teal accent (cyan in

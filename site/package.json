@@ -15,6 +15,7 @@
   "dependencies": {
     "@aihot/daily-push": "*",
     "@aihot/freebies": "*",
-    "@aihot/github-trending": "*"
+    "@aihot/github-trending": "*",
+    "@aihot/youtube": "*"
   }
 }
