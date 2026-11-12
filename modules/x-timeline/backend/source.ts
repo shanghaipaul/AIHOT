@@ -29,6 +29,15 @@ export const X_TIMELINE_EMBED_SOURCE_ID = "x-timeline-embed";
 
 /** Who the module acts as in the audit trail. */
 export const X_TIMELINE_ACTOR = "system:x-timeline";
+/**
+ * The account's own posts are ordinary site material: they go through the engine's pipeline like any
+ * other article, so the ones that pass the relevance check show up in the site's feeds and the ones
+ * that score well can be picked for the daily. Before this they were EXCLUDE_MP + isolated, which
+ * kept them out of every public list (only /x showed them).
+ */
+const SOURCE_TIER = "T2";
+const SOURCE_PARTICIPATION = "editorial";
+
 
 /** How the source should be collected. */
 export interface EnsureOptions {
@@ -84,8 +93,8 @@ export async function ensureXSource(handle: string, options: EnsureOptions): Pro
       currentQuery === query &&
       currentSearch === "Latest" &&
       existing.interval_minutes === interval &&
-      existing.tier === "EXCLUDE_MP" &&
-      existing.participation_mode === "isolated";
+      existing.tier === SOURCE_TIER &&
+      existing.participation_mode === SOURCE_PARTICIPATION;
     if (same) return existing;
     const updated = await updateSource(
       existing.id,
@@ -94,8 +103,8 @@ export async function ensureXSource(handle: string, options: EnsureOptions): Pro
           name: "X @" + name,
           config: { ...config, query, searchType: "Latest" },
           interval_minutes: interval,
-          tier: "EXCLUDE_MP",
-          participation_mode: "isolated",
+          tier: SOURCE_TIER,
+          participation_mode: SOURCE_PARTICIPATION,
         },
         version: iso(existing.updated_at) ?? new Date().toISOString(),
         reason: "同步 X 时间线的采集配置",
@@ -110,8 +119,8 @@ export async function ensureXSource(handle: string, options: EnsureOptions): Pro
       name: "X @" + name,
       kind: "x_search",
       config: { query, searchType: "Latest" },
-      tier: "EXCLUDE_MP",
-      participation_mode: "isolated",
+      tier: SOURCE_TIER,
+      participation_mode: SOURCE_PARTICIPATION,
       interval_minutes: interval,
       tags: ["X"],
       site_fulltext: false,
@@ -136,8 +145,8 @@ export async function ensureEmbedSource(handle: string, options: EnsureOptions):
   if (existing) {
     const same =
       existing.interval_minutes === interval &&
-      existing.tier === "EXCLUDE_MP" &&
-      existing.participation_mode === "isolated" &&
+      existing.tier === SOURCE_TIER &&
+      existing.participation_mode === SOURCE_PARTICIPATION &&
       existing.name === "X @" + name + "（嵌入时间线）";
     if (same) return existing;
     const updated = await updateSource(
@@ -146,8 +155,8 @@ export async function ensureEmbedSource(handle: string, options: EnsureOptions):
         patch: {
           name: "X @" + name + "（嵌入时间线）",
           interval_minutes: interval,
-          tier: "EXCLUDE_MP",
-          participation_mode: "isolated",
+          tier: SOURCE_TIER,
+          participation_mode: SOURCE_PARTICIPATION,
         },
         version: iso(existing.updated_at) ?? new Date().toISOString(),
         reason: "同步 X 时间线的采集配置",
@@ -162,8 +171,8 @@ export async function ensureEmbedSource(handle: string, options: EnsureOptions):
       name: "X @" + name + "（嵌入时间线）",
       kind: "external",
       config: {},
-      tier: "EXCLUDE_MP",
-      participation_mode: "isolated",
+      tier: SOURCE_TIER,
+      participation_mode: SOURCE_PARTICIPATION,
       interval_minutes: interval,
       tags: ["X", "自采"],
       site_fulltext: false,
